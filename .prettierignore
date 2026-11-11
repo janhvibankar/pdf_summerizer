@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-ssr/
+build/
+coverage/
+.git/
+package-lock.json
+*.py
+

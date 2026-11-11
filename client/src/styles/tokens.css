@@ -1,0 +1,50 @@
+/**
+ * PRANPAN Design Tokens (CSS Variables)
+ * Editorial-Minimal Identity:
+ * - Warm off-white background
+ * - Deep navy primary text and actions
+ * - Muted blue accent
+ * - Subtle borders and restrained shadows
+ */
+
+:root {
+  /* Palette Foundations */
+  --color-canvas: #f8f6f1;
+  --color-surface-card: #ffffff;
+  --color-surface-subtle: #f2efe8;
+  --color-border: #e5e0d6;
+  --color-border-subtle: #ede8e0;
+
+  /* Text & Primary Actions */
+  --color-text-primary: #0b1524;
+  --color-text-secondary: #4b6680;
+  --color-text-muted: #6f889f;
+
+  /* Accent (Muted Editorial Blue) */
+  --color-accent: #2253ac;
+  --color-accent-hover: #1b3e81;
+  --color-accent-subtle: #eef4ff;
+
+  /* Status Colors */
+  --color-status-success: #1e7e45;
+  --color-status-success-bg: #edf7f0;
+  --color-status-warning: #b25e09;
+  --color-status-warning-bg: #fef7ed;
+  --color-status-danger: #c5221f;
+  --color-status-danger-bg: #fdf2f2;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Newsreader', Georgia, Cambria, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
+
+  /* Focus outline ring */
+  --focus-ring: 2px solid #2253ac;
+  --focus-ring-offset: 2px;
+}

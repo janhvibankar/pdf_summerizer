@@ -1,0 +1,22 @@
+{
+  "name": "pranpan-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PRANPAN - AI-Powered PDF Summarizer and Document Assistant",
+  "scripts": {
+    "dev": "concurrently -k -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan.bold,magenta.bold\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "build:client": "npm run build --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "lint": "npm run lint --prefix server && npm run lint --prefix client",
+    "lint:server": "npm run lint --prefix server",
+    "lint:client": "npm run lint --prefix client",
+    "format": "prettier --write \"**/*.{js,jsx,json,md,css}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.5.0"
+  }
+}
