@@ -1,22 +1,43 @@
-import React, { useState } from 'react';
-import { User, Sliders, Palette, Shield, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Sliders, Palette, Shield, Lock, AlertCircle } from 'lucide-react';
 import Card from '../components/common/Card.jsx';
 import Button from '../components/common/Button.jsx';
 import Input from '../components/common/Input.jsx';
 import Textarea from '../components/common/Textarea.jsx';
+import Modal from '../components/common/Modal.jsx';
+import PasswordInput from '../components/auth/PasswordInput.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useUI } from '../context/UIContext.jsx';
 import { SUMMARY_FORMATS } from '../utils/mockDocuments.js';
 
 export const SettingsPage = () => {
+  const { user, updateProfile, changePassword } = useAuth();
+  const { addToast } = useUI();
+
   const [activeSection, setActiveSection] = useState('profile');
-  const [name, setName] = useState('Jane Doe');
-  const [email, setEmail] = useState('jane@example.com');
+  const [name, setName] = useState(user?.name || 'Jane Doe');
+  const [email] = useState(user?.email || 'jane@example.com');
   const [bio, setBio] = useState(
-    'Senior Research Analyst focusing on clean tech and infrastructure.'
+    user?.bio || 'Senior Research Analyst focusing on clean tech and infrastructure.'
   );
   const [defaultFormat, setDefaultFormat] = useState('executive');
   const [readingSpeed, setReadingSpeed] = useState('220');
-  const { addToast } = useUI();
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Change password modal state
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      if (user.name) setName(user.name);
+      if (user.bio !== undefined) setBio(user.bio);
+    }
+  }, [user]);
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
@@ -25,14 +46,72 @@ export const SettingsPage = () => {
     { id: 'security', label: 'Security & Access', icon: Shield }
   ];
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    addToast('Profile changes saved in local prototype session', 'success');
+    setIsSavingProfile(true);
+
+    try {
+      await updateProfile({ name: name.trim(), bio: bio.trim() });
+      addToast('Profile changes saved successfully.', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to update profile.', 'error');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleSavePreferences = (e) => {
     e.preventDefault();
-    addToast('Preferences updated locally', 'success');
+    addToast('Preferences updated locally.', 'success');
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError(null);
+
+    if (!currentPassword) {
+      setPasswordError('Current password is required.');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long.');
+      return;
+    }
+
+    if (!/[0-9!@#$%^&*]/.test(newPassword)) {
+      setPasswordError('New password must contain at least one number or special character.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirmation do not match.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await changePassword({ currentPassword, newPassword });
+      addToast('Password changed successfully.', 'success');
+      setIsPasswordModalOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setPasswordError(err.message || 'Failed to change password.');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const getInitials = (userName) => {
+    if (!userName) return 'JD';
+    const parts = userName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
   };
 
   return (
@@ -43,17 +122,7 @@ export const SettingsPage = () => {
           Settings & Preferences
         </h1>
         <p className="text-xs text-navy-500 mt-1">
-          Customize your PRANPAN editorial reading experience and personal profile.
-        </p>
-      </div>
-
-      {/* Scope Notice */}
-      <div className="p-3 rounded-md bg-warm-100 border border-warm-200 text-xs text-navy-600 flex items-start gap-2.5">
-        <ShieldAlert className="w-4 h-4 text-accent-600 flex-shrink-0 mt-0.5" />
-        <p className="text-[11px] leading-relaxed">
-          <span className="font-semibold text-navy-800">Phase 1 Design Preview:</span> Settings
-          controls represent the client-side interaction design. Profile updates and security
-          policies will be persisted via database integration in Phase 2.
+          Customize your PRANPAN editorial reading experience, account details, and security.
         </p>
       </div>
 
@@ -81,23 +150,25 @@ export const SettingsPage = () => {
         <div className="md:col-span-3">
           {/* Profile Section */}
           {activeSection === 'profile' && (
-            <Card title="User Profile" subtitle="Your public workspace information">
+            <Card title="User Profile" subtitle="Your public workspace and identity details">
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-navy-900 text-white flex items-center justify-center font-bold text-base">
-                    JD
+                    {getInitials(user?.name)}
                   </div>
                   <div>
                     <Button
                       variant="outline"
                       size="sm"
                       type="button"
-                      onClick={() => addToast('Avatar upload available in Phase 2', 'info')}
+                      onClick={() =>
+                        addToast('Avatar upload will connect with storage in Phase 3', 'info')
+                      }
                     >
                       Change Avatar
                     </Button>
                     <p className="text-[11px] text-navy-400 mt-1 font-mono">
-                      JPG, PNG or SVG under 2 MB
+                      Role: {user?.role || 'user'}
                     </p>
                   </div>
                 </div>
@@ -110,10 +181,10 @@ export const SettingsPage = () => {
                     required
                   />
                   <Input
-                    label="Email Address"
+                    label="Email Address (Read-only)"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
+                    disabled
+                    helperText="Email changes require security verification"
                   />
                 </div>
 
@@ -122,10 +193,11 @@ export const SettingsPage = () => {
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={3}
+                  placeholder="Share a short bio or research focus..."
                 />
 
                 <div className="pt-2 flex justify-end">
-                  <Button type="submit" variant="primary" size="sm">
+                  <Button type="submit" variant="primary" size="sm" isLoading={isSavingProfile}>
                     Save Profile Changes
                   </Button>
                 </div>
@@ -237,10 +309,10 @@ export const SettingsPage = () => {
                 <div className="p-4 rounded bg-warm-50 border border-warm-200">
                   <h4 className="font-semibold text-navy-900 mb-1">Session Management</h4>
                   <p className="text-navy-600">
-                    Current active session on this device: <strong>Chrome on Windows 11</strong>
+                    Authenticated session secured with an HttpOnly cookie and JWT token.
                   </p>
                   <p className="text-[11px] text-navy-400 font-mono mt-1">
-                    IP: 127.0.0.1 (Localhost)
+                    User ID: {user?.id || 'Active'} &bull; Role: {user?.role || 'user'}
                   </p>
                 </div>
 
@@ -248,9 +320,13 @@ export const SettingsPage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => addToast('Password update connects in Phase 2', 'info')}
+                    icon={Lock}
+                    onClick={() => {
+                      setPasswordError(null);
+                      setIsPasswordModalOpen(true);
+                    }}
                   >
-                    Update Password
+                    Change Account Password
                   </Button>
                 </div>
               </div>
@@ -258,6 +334,64 @@ export const SettingsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <Modal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        title="Change Password"
+        subtitle="Verify your current password and choose a new one"
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          {passwordError && (
+            <div className="p-3 rounded bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+              <span>{passwordError}</span>
+            </div>
+          )}
+
+          <PasswordInput
+            label="Current Password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+
+          <PasswordInput
+            label="New Password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="At least 8 characters with number/symbol"
+            required
+            autoComplete="new-password"
+          />
+
+          <PasswordInput
+            label="Confirm New Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+          />
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-surface-border">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => setIsPasswordModalOpen(false)}
+              disabled={isChangingPassword}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" type="submit" isLoading={isChangingPassword}>
+              Update Password
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

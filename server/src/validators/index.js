@@ -1,10 +1,9 @@
 import { ApiError } from '../utils/apiError.js';
+import * as authValidators from './authValidators.js';
 
 /**
  * Request Validation Middleware Utility
  * Validates request components (body, query, params) against custom validation rules.
- *
- * @param {Function} validatorFn - Function accepting (req) and returning { error, value }
  */
 export const validateRequest = (validatorFn) => {
   return (req, res, next) => {
@@ -23,6 +22,8 @@ export const validateRequest = (validatorFn) => {
   };
 };
 
+export { authValidators };
 export default {
-  validateRequest
+  validateRequest,
+  authValidators
 };

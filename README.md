@@ -211,6 +211,6 @@ Expected Response:
 ## 🗺 Implementation Roadmap
 
 - [x] **Phase 0: Architectural Foundation** (Monorepo, Express ES modules, React + Vite, Tailwind tokens, API client, resilient DB layer)
-- [ ] **Phase 1: Complete UI/UX Development** (Editorial design system, responsive layouts, document workspace shell, upload interactions, reader UI)
-- [ ] **Phase 2: Authentication & Multi-Tenancy** (JWT, bcrypt, User model, session management, protected routes)
+- [x] **Phase 1: Complete UI/UX Development** (Editorial design system, responsive layouts, document workspace shell, upload interactions, reader UI)
+- [x] **Phase 2: Authentication & Multi-Tenancy** (JWT, bcrypt, User model, session management, protected routes)
 - [ ] **Phase 3: Document Processing & Gemini Pipeline** (PDF extraction, Gemini AI summarization, chat with document, export/reports)

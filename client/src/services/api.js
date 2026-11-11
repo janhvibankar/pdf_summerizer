@@ -8,6 +8,7 @@ import { API_ENDPOINTS, STORAGE_KEYS } from '../utils/constants.js';
 export const apiClient = axios.create({
   baseURL: API_ENDPOINTS.BASE,
   timeout: 15000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'

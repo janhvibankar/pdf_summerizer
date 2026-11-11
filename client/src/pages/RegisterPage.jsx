@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Check, X } from 'lucide-react';
+import { UserPlus, Check, X, AlertCircle } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout.jsx';
 import Input from '../components/common/Input.jsx';
 import PasswordInput from '../components/auth/PasswordInput.jsx';
 import Button from '../components/common/Button.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useUI } from '../context/UIContext.jsx';
 
 export const RegisterPage = () => {
@@ -14,13 +15,16 @@ export const RegisterPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
+  const { register } = useAuth();
   const { addToast } = useUI();
 
   // Password strength checks
   const hasMinLength = password.length >= 8;
-  const hasNumberOrSpecial = /[0-9!@#$%^&*]/.test(password);
+  const hasNumberOrSpecial = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
 
   const validate = () => {
     const newErrors = {};
@@ -28,6 +32,8 @@ export const RegisterPage = () => {
 
     if (!fullName.trim()) {
       newErrors.fullName = 'Full name is required.';
+    } else if (fullName.trim().length < 2) {
+      newErrors.fullName = 'Name must be at least 2 characters.';
     }
 
     if (!email.trim()) {
@@ -40,6 +46,8 @@ export const RegisterPage = () => {
       newErrors.password = 'Password is required.';
     } else if (!hasMinLength) {
       newErrors.password = 'Password must be at least 8 characters.';
+    } else if (!hasNumberOrSpecial) {
+      newErrors.password = 'Password must contain a number or special character.';
     }
 
     if (!confirmPassword) {
@@ -56,23 +64,34 @@ export const RegisterPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError(null);
+
     if (!validate()) return;
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      const user = await register({
+        name: fullName.trim(),
+        email: email.trim(),
+        password
+      });
+
+      addToast(`Welcome to PRANPAN, ${user.name}! Account registered.`, 'success');
+      navigate('/app', { replace: true });
+    } catch (err) {
+      setServerError(err.message || 'Registration failed. Please review your information.');
+    } finally {
       setIsSubmitting(false);
-      addToast('Registration validated client-side. Entering prototype.', 'success');
-      navigate('/app');
-    }, 600);
+    }
   };
 
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Start distilling documents with PRANPAN"
+      subtitle="Start distilling complex documents with PRANPAN"
       footerLink={
         <span>
           Already have an account?{' '}
@@ -83,11 +102,21 @@ export const RegisterPage = () => {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {serverError && (
+          <div className="p-3 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{serverError}</span>
+          </div>
+        )}
+
         <Input
           label="Full name"
           type="text"
           value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
+          onChange={(e) => {
+            setFullName(e.target.value);
+            if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: null }));
+          }}
           placeholder="Jane Doe"
           error={errors.fullName}
           required
@@ -98,7 +127,10 @@ export const RegisterPage = () => {
           label="Email address"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) setErrors((prev) => ({ ...prev, email: null }));
+          }}
           placeholder="jane@example.com"
           error={errors.email}
           required
@@ -108,7 +140,10 @@ export const RegisterPage = () => {
         <PasswordInput
           label="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) setErrors((prev) => ({ ...prev, password: null }));
+          }}
           placeholder="At least 8 characters"
           error={errors.password}
           required
@@ -138,7 +173,10 @@ export const RegisterPage = () => {
         <PasswordInput
           label="Confirm password"
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e) => {
+            setConfirmPassword(e.target.value);
+            if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: null }));
+          }}
           placeholder="Repeat password"
           error={errors.confirmPassword}
           required
@@ -151,7 +189,10 @@ export const RegisterPage = () => {
             <input
               type="checkbox"
               checked={agreeTerms}
-              onChange={(e) => setAgreeTerms(e.target.checked)}
+              onChange={(e) => {
+                setAgreeTerms(e.target.checked);
+                if (errors.agreeTerms) setErrors((prev) => ({ ...prev, agreeTerms: null }));
+              }}
               className="mt-0.5 rounded border-surface-border text-navy-900 focus:ring-accent-600"
             />
             <span className="leading-tight">
@@ -180,7 +221,7 @@ export const RegisterPage = () => {
             isLoading={isSubmitting}
             icon={UserPlus}
           >
-            Create Account Prototype
+            Create Account
           </Button>
         </div>
       </form>

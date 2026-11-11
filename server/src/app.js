@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
@@ -14,7 +15,7 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS configuration with explicit origins
+// CORS configuration with explicit origins and credentials support
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow non-browser agents (curl, postman, server-to-server) without origin header
@@ -33,7 +34,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// HTTP payload parsing and compression
+// HTTP payload parsing, cookies, and compression
+app.use(cookieParser());
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

@@ -25,4 +25,3 @@ export const PasswordInput = ({ label = 'Password', ...props }) => {
 };
 
 export default PasswordInput;
-

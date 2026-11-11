@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Upload,
-  ArrowRight,
-  Sparkles,
-  CheckCircle2
-} from 'lucide-react';
+import { Upload, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import Button from '../components/common/Button.jsx';
 import Card from '../components/common/Card.jsx';
 import DocumentCard from '../components/documents/DocumentCard.jsx';

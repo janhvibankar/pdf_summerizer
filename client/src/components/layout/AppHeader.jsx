@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import {
-  Menu,
-  Upload,
-  User,
-  LogOut,
-  ShieldAlert,
-  ChevronDown
-} from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, Upload, User, LogOut, ShieldAlert, ChevronDown } from 'lucide-react';
 import Button from '../common/Button.jsx';
 import StatusPill from '../common/StatusPill.jsx';
 import useHealthCheck from '../../hooks/useHealthCheck.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useUI } from '../../context/UIContext.jsx';
 
 export const AppHeader = ({ onMobileMenuClick, onUploadClick }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
-  const { data } = useHealthCheck(false); // background check if loaded
+  const navigate = useNavigate();
+  const { data } = useHealthCheck(false);
+  const { user, logout } = useAuth();
+  const { addToast } = useUI();
   const isOnline = Boolean(data?.status === 'ok');
 
   const getBreadcrumbTitle = () => {
@@ -26,6 +24,22 @@ export const AppHeader = ({ onMobileMenuClick, onUploadClick }) => {
     if (path.startsWith('/app/settings')) return 'Settings & Preferences';
     if (path === '/diagnostics') return 'System Diagnostics';
     return 'PRANPAN';
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
+
+  const handleLogout = async () => {
+    setUserMenuOpen(false);
+    await logout();
+    addToast('You have been signed out.', 'info');
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -46,7 +60,7 @@ export const AppHeader = ({ onMobileMenuClick, onUploadClick }) => {
             {getBreadcrumbTitle()}
           </span>
           <span className="hidden sm:inline-block text-[10px] font-mono uppercase bg-warm-100 border border-warm-200 text-navy-600 px-2 py-0.5 rounded font-semibold tracking-wider">
-            Prototype
+            Workspace
           </span>
         </div>
       </div>
@@ -68,7 +82,7 @@ export const AppHeader = ({ onMobileMenuClick, onUploadClick }) => {
         <div className="hidden lg:block">
           <StatusPill
             status={isOnline ? 'success' : 'neutral'}
-            label={isOnline ? 'API Ready' : 'API Standby'}
+            label={isOnline ? 'API Connected' : 'API Standby'}
             pulse={isOnline}
           />
         </div>
@@ -83,7 +97,7 @@ export const AppHeader = ({ onMobileMenuClick, onUploadClick }) => {
             aria-label="User account menu"
           >
             <div className="w-7 h-7 rounded-full bg-navy-900 text-white flex items-center justify-center text-xs font-semibold">
-              JD
+              {getInitials(user?.name)}
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-navy-400" />
           </button>
@@ -97,8 +111,10 @@ export const AppHeader = ({ onMobileMenuClick, onUploadClick }) => {
               />
               <div className="absolute right-0 mt-2 w-52 rounded-card bg-white border border-surface-border shadow-editorial py-1 z-30 text-xs">
                 <div className="px-3.5 py-2.5 border-b border-surface-border">
-                  <p className="font-semibold text-navy-900">Jane Doe</p>
-                  <p className="text-[10px] font-mono text-navy-400 truncate">jane@example.com</p>
+                  <p className="font-semibold text-navy-900 truncate">{user?.name || 'User'}</p>
+                  <p className="text-[10px] font-mono text-navy-400 truncate">
+                    {user?.email || ''}
+                  </p>
                 </div>
                 <Link
                   to="/app/settings"
@@ -117,14 +133,14 @@ export const AppHeader = ({ onMobileMenuClick, onUploadClick }) => {
                   <span>System Diagnostics</span>
                 </Link>
                 <div className="border-t border-surface-border my-1" />
-                <Link
-                  to="/login"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-3.5 py-2 text-rose-700 hover:bg-rose-50 transition-colors"
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full text-left flex items-center gap-2 px-3.5 py-2 text-rose-700 hover:bg-rose-50 transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-600" />
                   <span>Sign out</span>
-                </Link>
+                </button>
               </div>
             </>
           )}

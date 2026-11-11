@@ -51,4 +51,3 @@ export const Tabs = ({ tabs, activeTab, onChange, className = '' }) => {
 };
 
 export default Tabs;
-

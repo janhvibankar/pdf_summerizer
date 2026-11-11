@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import healthRoutes from './healthRoutes.js';
+import authRoutes from './authRoutes.js';
+import userRoutes from './userRoutes.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 
 const apiRouter = Router();
@@ -10,9 +12,19 @@ apiRouter.get('/', (req, res) => {
     message: 'Welcome to the PRANPAN API',
     data: {
       name: 'PRANPAN API',
-      phase: 'Phase 0 - Architectural Foundation',
+      phase: 'Phase 2 - Backend, Database & Authentication',
       endpoints: {
-        health: '/api/health'
+        health: '/api/health',
+        auth: {
+          register: 'POST /api/auth/register',
+          login: 'POST /api/auth/login',
+          logout: 'POST /api/auth/logout',
+          me: 'GET /api/auth/me'
+        },
+        users: {
+          updateProfile: 'PATCH /api/users/me',
+          changePassword: 'POST /api/users/change-password'
+        }
       }
     }
   });
@@ -20,10 +32,7 @@ apiRouter.get('/', (req, res) => {
 
 // Mount domain routes
 apiRouter.use('/', healthRoutes);
-
-// Architectural reservations for Phase 1 & 2 routes:
-// apiRouter.use('/auth', authRoutes);
-// apiRouter.use('/documents', documentRoutes);
-// apiRouter.use('/summaries', summaryRoutes);
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/users', userRoutes);
 
 export default apiRouter;

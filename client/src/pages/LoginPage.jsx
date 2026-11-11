@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { LogIn, AlertCircle } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout.jsx';
 import Input from '../components/common/Input.jsx';
 import PasswordInput from '../components/auth/PasswordInput.jsx';
 import Button from '../components/common/Button.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useUI } from '../context/UIContext.jsx';
 
 export const LoginPage = () => {
@@ -12,8 +13,12 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const { addToast } = useUI();
 
   const validate = () => {
@@ -28,31 +33,36 @@ export const LoginPage = () => {
 
     if (!password) {
       newErrors.password = 'Password is required.';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters.';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError(null);
+
     if (!validate()) return;
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      const user = await login({ email: email.trim(), password });
+      addToast(`Signed in successfully as ${user.name}`, 'success');
+      const destination = location.state?.from?.pathname || '/app';
+      navigate(destination, { replace: true });
+    } catch (err) {
+      setServerError(err.message || 'Invalid email or password.');
+    } finally {
       setIsSubmitting(false);
-      addToast('Local validation passed. Entering prototype workspace.', 'info');
-      navigate('/app');
-    }, 600);
+    }
   };
 
   return (
     <AuthLayout
       title="Sign in to PRANPAN"
-      subtitle="Access your synthesized document workspace"
+      subtitle="Access your authenticated document workspace"
       footerLink={
         <span>
           Don&apos;t have an account?{' '}
@@ -66,11 +76,21 @@ export const LoginPage = () => {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {serverError && (
+          <div className="p-3 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{serverError}</span>
+          </div>
+        )}
+
         <Input
           label="Email address"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) setErrors((prev) => ({ ...prev, email: null }));
+          }}
           placeholder="name@example.com"
           error={errors.email}
           required
@@ -80,7 +100,10 @@ export const LoginPage = () => {
         <PasswordInput
           label="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) setErrors((prev) => ({ ...prev, password: null }));
+          }}
           placeholder="••••••••"
           error={errors.password}
           required
@@ -95,12 +118,14 @@ export const LoginPage = () => {
               onChange={(e) => setRememberMe(e.target.checked)}
               className="rounded border-surface-border text-navy-900 focus:ring-accent-600"
             />
-            <span>Remember me for 30 days</span>
+            <span>Remember me</span>
           </label>
 
           <button
             type="button"
-            onClick={() => addToast('Password recovery will be activated in Phase 2', 'info')}
+            onClick={() =>
+              addToast('Password recovery workflow is scheduled for a future release.', 'info')
+            }
             className="text-navy-600 hover:text-navy-900 hover:underline"
           >
             Forgot password?
@@ -116,7 +141,7 @@ export const LoginPage = () => {
             isLoading={isSubmitting}
             icon={LogIn}
           >
-            Sign In to Prototype
+            Sign In
           </Button>
         </div>
       </form>

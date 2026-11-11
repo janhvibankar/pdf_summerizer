@@ -13,6 +13,7 @@
     "lint": "npm run lint --prefix server && npm run lint --prefix client",
     "lint:server": "npm run lint --prefix server",
     "lint:client": "npm run lint --prefix client",
+    "test": "npm test --prefix server",
     "format": "prettier --write \"**/*.{js,jsx,json,md,css}\" --ignore-path .gitignore"
   },
   "devDependencies": {

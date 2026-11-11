@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   LayoutDashboard,
@@ -12,10 +12,13 @@ import {
   LogOut
 } from 'lucide-react';
 import { useUI } from '../../context/UIContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { APP_NAME } from '../../utils/constants.js';
 
 export const MobileNavigation = ({ isOpen, onClose, onUploadClick }) => {
-  const { selectedDocument } = useUI();
+  const { selectedDocument, addToast } = useUI();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isOpen) {
@@ -29,6 +32,22 @@ export const MobileNavigation = ({ isOpen, onClose, onUploadClick }) => {
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
+
+  const handleLogout = async () => {
+    onClose();
+    await logout();
+    addToast('You have been signed out.', 'info');
+    navigate('/login', { replace: true });
+  };
 
   const navItems = [
     { label: 'Overview', to: '/app', icon: LayoutDashboard, end: true },
@@ -112,21 +131,21 @@ export const MobileNavigation = ({ isOpen, onClose, onUploadClick }) => {
         <div className="p-4 border-t border-surface-border bg-warm-50 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-navy-900 text-white flex items-center justify-center text-xs font-semibold">
-              JD
+              {getInitials(user?.name)}
             </div>
-            <div>
-              <p className="text-xs font-semibold text-navy-900">Jane Doe</p>
-              <p className="text-[10px] text-navy-400 font-mono">jane@example.com</p>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-navy-900 truncate">{user?.name || 'User'}</p>
+              <p className="text-[10px] text-navy-400 font-mono truncate">{user?.email || ''}</p>
             </div>
           </div>
-          <Link
-            to="/login"
-            onClick={onClose}
-            className="p-1.5 text-navy-400 hover:text-rose-600 rounded"
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="p-1.5 text-navy-400 hover:text-rose-600 rounded transition-colors"
             title="Sign out"
           >
             <LogOut className="w-4 h-4" />
-          </Link>
+          </button>
         </div>
       </div>
     </div>

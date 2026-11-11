@@ -12,11 +12,22 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useUI } from '../../context/UIContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { APP_NAME } from '../../utils/constants.js';
 
 export const AppSidebar = ({ onUploadClick }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { selectedDocument } = useUI();
+  const { user } = useAuth();
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
 
   const navItems = [
     { label: 'Overview', to: '/app', icon: LayoutDashboard, end: true },
@@ -119,12 +130,12 @@ export const AppSidebar = ({ onUploadClick }) => {
       <div className="p-3 border-t border-surface-border bg-warm-50/50">
         <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-8 h-8 rounded-full bg-navy-800 text-white flex items-center justify-center font-medium text-xs flex-shrink-0">
-            JD
+            {getInitials(user?.name)}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-navy-900 truncate">Jane Doe</p>
-              <p className="text-[10px] text-navy-400 font-mono truncate">jane@example.com</p>
+              <p className="text-xs font-medium text-navy-900 truncate">{user?.name || 'User'}</p>
+              <p className="text-[10px] text-navy-400 font-mono truncate">{user?.email || ''}</p>
             </div>
           )}
         </div>
