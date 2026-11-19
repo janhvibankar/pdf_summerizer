@@ -6,29 +6,32 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN));
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  // Restore authenticated session on application mount
+  // Restore authenticated session and initialize CSRF on application mount
   const checkAuth = useCallback(async () => {
     setIsLoading(true);
     setAuthError(null);
 
+    // Clean up any legacy localStorage tokens to ensure session relies exclusively on HttpOnly cookie
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    }
+
     try {
+      // 1. Initialize CSRF protection token
+      await authService.getCsrfToken().catch(() => {});
+
+      // 2. Hydrate user session from HttpOnly cookie
       const response = await authService.getMe();
       if (response && response.data && response.data.user) {
         setUser(response.data.user);
       } else {
         setUser(null);
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       }
     } catch (err) {
       setUser(null);
-      // Clean up dead token if unauthorized
-      if (err.statusCode === 401) {
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      }
       setAuthError(err.message || 'Session verification failed');
     } finally {
       setIsLoading(false);
@@ -46,14 +49,9 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await authService.login({ email, password });
-      const { user: userData, token: authToken } = response.data;
+      const { user: userData } = response.data;
 
       setUser(userData);
-      if (authToken) {
-        setToken(authToken);
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, authToken);
-      }
-
       return userData;
     } catch (err) {
       setAuthError(err.message || 'Failed to sign in');
@@ -70,14 +68,9 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await authService.register({ name, email, password });
-      const { user: userData, token: authToken } = response.data;
+      const { user: userData } = response.data;
 
       setUser(userData);
-      if (authToken) {
-        setToken(authToken);
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, authToken);
-      }
-
       return userData;
     } catch (err) {
       setAuthError(err.message || 'Failed to register account');
@@ -96,7 +89,6 @@ export const AuthProvider = ({ children }) => {
       // Proceed with client session cleanup regardless of server response
     } finally {
       setUser(null);
-      setToken(null);
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       setIsLoading(false);
     }
@@ -118,7 +110,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    token,
+    token: null, // Token is encapsulated in HttpOnly cookie for browser security
     isAuthenticated: Boolean(user),
     isLoading,
     authError,

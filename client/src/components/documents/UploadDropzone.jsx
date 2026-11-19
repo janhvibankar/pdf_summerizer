@@ -1,14 +1,37 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, X, ShieldAlert } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, X, ShieldCheck, Loader2 } from 'lucide-react';
 import Button from '../common/Button.jsx';
-import { SUMMARY_FORMATS } from '../../utils/mockDocuments.js';
+import { documentService } from '../../services/documentService.js';
+
+export const SUMMARY_OPTIONS = [
+  {
+    id: 'medium',
+    label: 'Executive Brief',
+    description: 'High-level synthesis, strategic takeaways, and decision-maker impact.',
+    badge: 'Recommended'
+  },
+  {
+    id: 'short',
+    label: 'Concise Overview',
+    description: 'Quick bulleted summary highlighting core facts and action items.',
+    badge: 'Fast'
+  },
+  {
+    id: 'detailed',
+    label: 'Deep Analytical',
+    description: 'Comprehensive section-by-section breakdown and quantitative findings.',
+    badge: 'In-Depth'
+  }
+];
 
 export const UploadDropzone = ({ onComplete, onCancel }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState(null);
-  const [selectedFormat, setSelectedFormat] = useState('executive');
+  const [selectedFormat, setSelectedFormat] = useState('medium');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState('');
   const fileInputRef = useRef(null);
 
   const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
@@ -60,59 +83,62 @@ export const UploadDropzone = ({ onComplete, onCancel }) => {
   const handleRemove = () => {
     setSelectedFile(null);
     setError(null);
+    setUploadProgress(0);
+    setStatusMessage('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleUploadSubmit = (e) => {
+  const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedFile) return;
+    if (!selectedFile || isProcessing) return;
 
     setIsProcessing(true);
+    setError(null);
+    setUploadProgress(10);
+    setStatusMessage('Transferring PDF document to server...');
 
-    // Simulate local document addition for Phase 1 UI/UX demonstration
-    setTimeout(() => {
-      const newDoc = {
-        id: 'doc-' + Date.now(),
-        title: selectedFile.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' '),
-        fileName: selectedFile.name,
-        fileSize: (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB',
-        pageCount: Math.max(4, Math.floor(selectedFile.size / 75000)),
-        category: 'Uploaded',
-        uploadedAt: new Date().toISOString(),
-        status: 'completed',
-        readingTime: '4 min summary',
-        executiveSummary: `Sample summary for "${selectedFile.name}". This document was uploaded locally during Phase 1 UI validation. Full AI processing and text extraction will be performed via the backend pipeline in subsequent phases.`,
-        keyTakeaways: [
-          {
-            id: 't-1',
-            title: 'Uploaded Document Ingestion',
-            desc: `File "${selectedFile.name}" was verified client-side.`
-          },
-          {
-            id: 't-2',
-            title: 'Summary Target Mode',
-            desc: `Configured for ${SUMMARY_FORMATS.find((f) => f.id === selectedFormat)?.label || 'Executive'} synthesis.`
-          }
-        ],
-        sections: [
-          {
-            title: '1. Document Overview',
-            pages: 'pp. 1–2',
-            content: 'Client-side file metadata parsed successfully.'
-          }
-        ],
-        chatHistory: []
-      };
+    try {
+      const response = await documentService.uploadDocument(selectedFile, (progressEvent) => {
+        if (progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 75) / progressEvent.total);
+          setUploadProgress(Math.max(15, percent));
+        }
+      });
 
+      setStatusMessage('Extracting document pages and validating structure...');
+      setUploadProgress(90);
+
+      const uploadedDoc = response?.data?.document;
+      if (!uploadedDoc) {
+        throw new Error('Upload succeeded but no document record was returned by the server.');
+      }
+
+      setUploadProgress(100);
+      setStatusMessage('Document indexed successfully.');
+
+      if (onComplete) {
+        onComplete({
+          ...uploadedDoc,
+          preferredFormat: selectedFormat
+        });
+      }
+    } catch (err) {
+      const errMsg =
+        err.message ||
+        err.details ||
+        'Failed to process document. Please check your network or try again.';
+      setError(errMsg);
+      setUploadProgress(0);
+      setStatusMessage('');
+    } finally {
       setIsProcessing(false);
-      if (onComplete) onComplete(newDoc);
-    }, 600);
+    }
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 B';
+    if (!bytes || bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -121,13 +147,13 @@ export const UploadDropzone = ({ onComplete, onCancel }) => {
 
   return (
     <form onSubmit={handleUploadSubmit} className="space-y-5">
-      {/* Scope Notice */}
+      {/* Scope / Security Banner */}
       <div className="p-3 rounded-md bg-warm-50 border border-warm-200 text-xs text-navy-600 flex items-start gap-2.5">
-        <ShieldAlert className="w-4 h-4 text-accent-600 flex-shrink-0 mt-0.5" />
+        <ShieldCheck className="w-4 h-4 text-accent-600 flex-shrink-0 mt-0.5" />
         <p className="text-[11px] leading-relaxed">
-          <span className="font-semibold text-navy-800">Phase 1 UI Testing:</span> File validation
-          and addition occur locally in-browser. Backend extraction and Gemini summarization will
-          connect in later phases.
+          <span className="font-semibold text-navy-800">Secure Ingestion:</span> Documents are
+          verified via PDF signature bytes, stored privately, and extracted with full page
+          preservation. OCR is not supported for scanned images.
         </p>
       </div>
 
@@ -171,46 +197,70 @@ export const UploadDropzone = ({ onComplete, onCancel }) => {
               <div className="min-w-0">
                 <p className="text-sm font-medium text-navy-900 truncate">{selectedFile.name}</p>
                 <p className="text-xs text-navy-400 font-mono mt-0.5">
-                  {formatFileSize(selectedFile.size)} &bull; Ready to index
+                  {formatFileSize(selectedFile.size)} &bull; Ready to ingest
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="p-1.5 rounded text-navy-400 hover:text-navy-700 hover:bg-warm-100 transition-colors"
-              aria-label="Remove selected file"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {!isProcessing && (
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="p-1.5 rounded text-navy-400 hover:text-navy-700 hover:bg-warm-100 transition-colors"
+                aria-label="Remove selected file"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between text-xs text-emerald-700">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              PDF format verified
-            </span>
-            <span className="text-navy-400 font-mono text-[11px]">Local client staging</span>
-          </div>
+          {/* Upload & Ingestion Progress */}
+          {isProcessing ? (
+            <div className="mt-4 pt-3 border-t border-surface-border space-y-2">
+              <div className="flex items-center justify-between text-xs text-navy-700 font-mono">
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-600" />
+                  {statusMessage || 'Processing...'}
+                </span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-warm-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-accent-600 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between text-xs text-emerald-700">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                PDF format checked
+              </span>
+              <span className="text-navy-400 font-mono text-[11px]">Ready for extraction</span>
+            </div>
+          )}
         </div>
       )}
 
       {/* Error alert */}
       {error && (
-        <div className="p-3 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-          <span>{error}</span>
+        <div className="p-3.5 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5 leading-relaxed">
+          <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <span className="font-semibold block mb-0.5">Upload Failed</span>
+            <span>{error}</span>
+          </div>
         </div>
       )}
 
       {/* Summary Format Selector */}
-      {selectedFile && (
+      {selectedFile && !isProcessing && (
         <div className="space-y-2 pt-2">
           <label className="block text-xs font-semibold text-navy-900">
             Select Initial Summary Target
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {SUMMARY_FORMATS.map((fmt) => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {SUMMARY_OPTIONS.map((fmt) => (
               <label
                 key={fmt.id}
                 className={`flex items-start gap-2.5 p-3 rounded-md border text-left cursor-pointer transition-colors ${
@@ -256,7 +306,7 @@ export const UploadDropzone = ({ onComplete, onCancel }) => {
           disabled={!selectedFile || isProcessing}
           isLoading={isProcessing}
         >
-          {isProcessing ? 'Staging Document...' : 'Stage Document to Workspace'}
+          {isProcessing ? 'Ingesting PDF...' : 'Upload & Ingest PDF'}
         </Button>
       </div>
     </form>

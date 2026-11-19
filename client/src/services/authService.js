@@ -2,6 +2,13 @@ import apiClient from './api.js';
 
 export const authService = {
   /**
+   * Initialize CSRF protection token
+   */
+  async getCsrfToken() {
+    return apiClient.get('/auth/csrf-token');
+  },
+
+  /**
    * Register a new user account
    */
   async register({ name, email, password }) {

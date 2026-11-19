@@ -21,7 +21,13 @@ export class ApiError extends Error {
   }
 
   static badRequest(message = 'Bad Request', details = null, code = 'BAD_REQUEST') {
-    return new ApiError(400, message, code, details);
+    let finalDetails = details;
+    let finalCode = code;
+    if (typeof details === 'string' && code === 'BAD_REQUEST') {
+      finalCode = details;
+      finalDetails = null;
+    }
+    return new ApiError(400, message, finalCode, finalDetails);
   }
 
   static unauthorized(message = 'Unauthorized access', code = 'UNAUTHORIZED') {
@@ -34,6 +40,14 @@ export class ApiError extends Error {
 
   static notFound(message = 'Resource not found', code = 'NOT_FOUND') {
     return new ApiError(404, message, code);
+  }
+
+  static conflict(message = 'Conflict', code = 'CONFLICT') {
+    return new ApiError(409, message, code);
+  }
+
+  static tooManyRequests(message = 'Too many requests', code = 'TOO_MANY_REQUESTS') {
+    return new ApiError(429, message, code);
   }
 
   static internal(message = 'Internal server error', code = 'INTERNAL_ERROR') {

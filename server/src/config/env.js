@@ -19,6 +19,13 @@ const CLIENT_ORIGIN = rawOrigins
 
 const MONGO_URI = process.env.MONGO_URI || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+const MAX_PDF_SIZE_MB = parseInt(process.env.MAX_PDF_SIZE_MB, 10) || 15;
+const MAX_PDF_PAGES = parseInt(process.env.MAX_PDF_PAGES, 10) || 100;
+const FILE_STORAGE_PROVIDER = process.env.FILE_STORAGE_PROVIDER || 'local';
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
 
 // JWT & Session configuration
 const DEV_JWT_FALLBACK = 'pranpan_development_jwt_secret_min_32_chars_2026';
@@ -56,6 +63,13 @@ export const env = {
   CLIENT_ORIGIN,
   MONGO_URI,
   GEMINI_API_KEY,
+  GEMINI_MODEL,
+  MAX_PDF_SIZE_MB,
+  MAX_PDF_PAGES,
+  FILE_STORAGE_PROVIDER,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
   JWT_SECRET,
   JWT_EXPIRES_IN,
   COOKIE_NAME,

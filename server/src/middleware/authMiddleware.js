@@ -39,6 +39,18 @@ export const requireAuth = async (req, res, next) => {
       );
     }
 
+    // Verify token version / session revocation
+    if (
+      decoded.tokenVersion !== undefined &&
+      user.tokenVersion !== undefined &&
+      decoded.tokenVersion !== user.tokenVersion
+    ) {
+      throw ApiError.unauthorized(
+        'Session has been invalidated or expired. Please sign in again.',
+        'SESSION_REVOKED'
+      );
+    }
+
     req.user = user;
     next();
   } catch (err) {

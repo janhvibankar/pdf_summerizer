@@ -21,24 +21,27 @@ export const LibraryPage = () => {
   const filteredDocuments = useMemo(() => {
     return documents
       .filter((doc) => {
-        const matchesSearch =
-          doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          doc.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          doc.executiveSummary.toLowerCase().includes(searchQuery.toLowerCase());
+        const title = (doc.title || '').toLowerCase();
+        const fileName = (doc.fileName || '').toLowerCase();
+        const summary = (doc.executiveSummary || '').toLowerCase();
+        const q = searchQuery.toLowerCase();
 
+        const matchesSearch = !q || title.includes(q) || fileName.includes(q) || summary.includes(q);
         const matchesCategory = selectedCategory === 'All' || doc.category === selectedCategory;
 
         return matchesSearch && matchesCategory;
       })
       .sort((a, b) => {
         if (sortBy === 'title') {
-          return a.title.localeCompare(b.title);
+          return (a.title || '').localeCompare(b.title || '');
         }
         if (sortBy === 'pages') {
-          return b.pageCount - a.pageCount;
+          return (b.pageCount || 1) - (a.pageCount || 1);
         }
         // newest
-        return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+        const timeA = new Date(a.uploadedAt || 0).getTime();
+        const timeB = new Date(b.uploadedAt || 0).getTime();
+        return timeB - timeA;
       });
   }, [documents, searchQuery, selectedCategory, sortBy]);
 
@@ -190,7 +193,7 @@ export const LibraryPage = () => {
         onClose={() => setDocToDelete(null)}
         onConfirm={handleDeleteConfirm}
         title="Remove Document from Library"
-        message={`Are you sure you want to remove "${docToDelete?.title || 'this document'}"? This action removes the document from your local workspace state.`}
+        message={`Are you sure you want to remove "${docToDelete?.title || 'this document'}"? All extracted pages, summaries, and chat history will be permanently deleted.`}
       />
     </div>
   );

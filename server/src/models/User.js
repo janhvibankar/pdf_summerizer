@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema(
         message: 'Invalid user role'
       },
       default: 'user'
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0
     }
   },
   {
@@ -45,6 +49,7 @@ const userSchema = new mongoose.Schema(
     toJSON: {
       transform: (doc, ret) => {
         delete ret.passwordHash;
+        delete ret.tokenVersion;
         delete ret.__v;
         return ret;
       }
@@ -52,6 +57,7 @@ const userSchema = new mongoose.Schema(
     toObject: {
       transform: (doc, ret) => {
         delete ret.passwordHash;
+        delete ret.tokenVersion;
         delete ret.__v;
         return ret;
       }

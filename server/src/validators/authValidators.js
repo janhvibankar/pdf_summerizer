@@ -85,6 +85,7 @@ export const validateUpdateProfile = (req) => {
     'email',
     'password',
     'passwordHash',
+    'tokenVersion',
     '_id',
     'createdAt',
     'updatedAt'

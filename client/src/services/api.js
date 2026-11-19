@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_ENDPOINTS, STORAGE_KEYS } from '../utils/constants.js';
+import { API_ENDPOINTS } from '../utils/constants.js';
 
 /**
  * Centralized Axios HTTP Client
@@ -9,18 +9,30 @@ export const apiClient = axios.create({
   baseURL: API_ENDPOINTS.BASE,
   timeout: 15000,
   withCredentials: true,
+  xsrfCookieName: 'pranpan_csrf',
+  xsrfHeaderName: 'x-csrf-token',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'
   }
 });
 
-// Request interceptor: attach auth tokens when available (Phase 2 reserve)
+// Helper to extract cookie value by name in browser context
+const getCookie = (name) => {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[2]) : null;
+};
+
+// Request interceptor: attach CSRF token on mutating requests
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const method = config.method?.toLowerCase();
+    if (['post', 'put', 'patch', 'delete'].includes(method)) {
+      const csrfToken = getCookie('pranpan_csrf');
+      if (csrfToken && !config.headers['x-csrf-token']) {
+        config.headers['x-csrf-token'] = csrfToken;
+      }
     }
     return config;
   },

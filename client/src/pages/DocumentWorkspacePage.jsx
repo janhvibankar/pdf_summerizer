@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Share2, FileSearch } from 'lucide-react';
+import { ArrowLeft, Trash2, Share2, FileSearch, Loader2 } from 'lucide-react';
 import DocumentPreview from '../components/documents/DocumentPreview.jsx';
 import DocumentSummary from '../components/documents/DocumentSummary.jsx';
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx';
 import Button from '../components/common/Button.jsx';
-import { useUI } from '../context/UIContext.jsx';
+import { useUI, normalizeDocument } from '../context/UIContext.jsx';
+import { documentService } from '../services/documentService.js';
 
 export const DocumentWorkspacePage = () => {
   const { id } = useParams();
@@ -13,9 +14,61 @@ export const DocumentWorkspacePage = () => {
   const { documents, deleteDocument, addToast } = useUI();
   const [docToDelete, setDocToDelete] = useState(false);
   const [layoutMode, setLayoutMode] = useState('split'); // 'split' | 'reader' | 'summary'
+  const [fetchedDoc, setFetchedDoc] = useState(null);
+  const [docPages, setDocPages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Lookup document by id or fallback to first document
-  const currentDoc = documents.find((d) => d.id === id) || documents[0] || null;
+  // Lookup document by id in context first
+  const contextDoc = documents.find((d) => d.id === id) || null;
+
+  // Load document content (pages) and metadata if needed
+  const loadDocumentDetails = useCallback(async () => {
+    if (!id) return;
+    setIsLoading(true);
+
+    try {
+      // 1. Fetch document metadata if not in context
+      if (!contextDoc) {
+        const docRes = await documentService.getDocument(id);
+        if (docRes?.data?.document) {
+          setFetchedDoc(normalizeDocument(docRes.data.document));
+        }
+      }
+
+      // 2. Fetch document full extracted page content
+      const contentRes = await documentService.getDocumentContent(id);
+      if (contentRes?.data?.pages) {
+        setDocPages(contentRes.data.pages);
+      }
+    } catch {
+      // Ignore errors for offline/sample documents
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id, contextDoc]);
+
+  useEffect(() => {
+    loadDocumentDetails();
+  }, [loadDocumentDetails]);
+
+  // Combine available document data with extracted pages
+  const baseDoc = contextDoc || fetchedDoc || (documents.length > 0 ? documents[0] : null);
+
+  const currentDoc = baseDoc
+    ? {
+        ...baseDoc,
+        pages: docPages.length > 0 ? docPages : baseDoc.pages || []
+      }
+    : null;
+
+  if (isLoading && !currentDoc) {
+    return (
+      <div className="text-center py-24 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-accent-600 mx-auto" />
+        <h2 className="text-base font-serif font-bold text-navy-900">Loading Document Workspace...</h2>
+      </div>
+    );
+  }
 
   if (!currentDoc) {
     return (
@@ -34,8 +87,8 @@ export const DocumentWorkspacePage = () => {
     );
   }
 
-  const handleDeleteConfirm = () => {
-    deleteDocument(currentDoc.id);
+  const handleDeleteConfirm = async () => {
+    await deleteDocument(currentDoc.id);
     navigate('/app/library');
   };
 
@@ -161,7 +214,7 @@ export const DocumentWorkspacePage = () => {
         onClose={() => setDocToDelete(false)}
         onConfirm={handleDeleteConfirm}
         title="Delete Document"
-        message={`Are you sure you want to remove "${currentDoc.title}" from your workspace?`}
+        message={`Are you sure you want to permanently delete "${currentDoc.title}"?`}
       />
     </div>
   );

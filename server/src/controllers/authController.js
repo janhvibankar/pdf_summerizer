@@ -1,6 +1,7 @@
 import { User } from '../models/User.js';
 import { ApiResponse } from '../utils/apiResponse.js';
-import { signToken, attachAuthCookie, clearAuthCookie } from '../utils/token.js';
+import { signToken, verifyToken, attachAuthCookie, clearAuthCookie } from '../utils/token.js';
+import { env } from '../config/env.js';
 
 export const register = async (req, res, next) => {
   try {
@@ -25,11 +26,12 @@ export const register = async (req, res, next) => {
       passwordHash
     });
 
-    // Generate JWT token
+    // Generate JWT token with tokenVersion for session tracking
     const token = signToken({
       id: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
+      tokenVersion: user.tokenVersion || 0
     });
 
     // Attach secure HttpOnly session cookie
@@ -74,11 +76,12 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // Generate JWT token
+    // Generate JWT token with tokenVersion for session tracking
     const token = signToken({
       id: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
+      tokenVersion: user.tokenVersion || 0
     });
 
     // Attach secure HttpOnly session cookie
@@ -99,6 +102,25 @@ export const login = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
   try {
+    // Invalidate active session by incrementing user's tokenVersion if authenticated
+    let token = null;
+    if (req.cookies && req.cookies[env.COOKIE_NAME]) {
+      token = req.cookies[env.COOKIE_NAME];
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (token) {
+      try {
+        const decoded = verifyToken(token);
+        if (decoded && decoded.id) {
+          await User.findByIdAndUpdate(decoded.id, { $inc: { tokenVersion: 1 } });
+        }
+      } catch {
+        // Token was already expired/invalid; proceed with cookie clearance
+      }
+    }
+
     clearAuthCookie(res);
 
     return ApiResponse.success(res, {

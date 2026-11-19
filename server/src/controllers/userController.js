@@ -49,15 +49,17 @@ export const changePassword = async (req, res, next) => {
       });
     }
 
-    // Hash and store new password
+    // Invalidate existing sessions by incrementing tokenVersion
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.passwordHash = await User.hashPassword(newPassword);
     await user.save();
 
-    // Re-issue JWT token and refresh cookie
+    // Re-issue JWT token with new tokenVersion and refresh cookie
     const token = signToken({
       id: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
+      tokenVersion: user.tokenVersion
     });
     attachAuthCookie(res, token);
 

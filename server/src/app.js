@@ -3,10 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import { env } from './config/env.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { ensureCsrfCookie, verifyCsrf, isOriginAllowed } from './middleware/csrfMiddleware.js';
 import apiRouter from './routes/index.js';
 import { ApiError } from './utils/apiError.js';
 
@@ -21,7 +21,7 @@ const corsOptions = {
     // Allow non-browser agents (curl, postman, server-to-server) without origin header
     if (!origin) return callback(null, true);
 
-    if (env.CLIENT_ORIGIN.includes('*') || env.CLIENT_ORIGIN.includes(origin)) {
+    if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
 
@@ -29,7 +29,15 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-CSRF-Token',
+    'x-csrf-token',
+    'X-XSRF-Token',
+    'x-xsrf-token'
+  ]
 };
 
 app.use(cors(corsOptions));
@@ -40,11 +48,14 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Ensure CSRF cookie is initialized on safe requests
+app.use(ensureCsrfCookie);
+
 // Request logging
 app.use(requestLogger);
 
-// API route mounting
-app.use('/api', apiRouter);
+// API route mounting with CSRF protection on mutating endpoints
+app.use('/api', verifyCsrf, apiRouter);
 
 // 404 handler for unmatched routes
 app.use(notFoundHandler);
