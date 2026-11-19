@@ -8,9 +8,16 @@ import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { ensureCsrfCookie, verifyCsrf, isOriginAllowed } from './middleware/csrfMiddleware.js';
 import apiRouter from './routes/index.js';
+import { getHealth } from './controllers/healthController.js';
+import { env } from './config/env.js';
 import { ApiError } from './utils/apiError.js';
 
 const app = express();
+
+// Trust reverse proxy (Render, AWS ALB, Vercel) in production for HTTPS detection and secure cookies
+if (env.isProduction) {
+  app.set('trust proxy', 1);
+}
 
 // Security headers
 app.use(helmet());
@@ -53,6 +60,9 @@ app.use(ensureCsrfCookie);
 
 // Request logging
 app.use(requestLogger);
+
+// Direct root health check endpoint for cloud load balancers and orchestrators
+app.get('/health', getHealth);
 
 // API route mounting with CSRF protection on mutating endpoints
 app.use('/api', verifyCsrf, apiRouter);

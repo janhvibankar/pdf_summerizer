@@ -10,7 +10,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Base directory for secure local file storage (never exposed via express.static)
-const LOCAL_UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
+// Supports optional Render Persistent Disk mount point via UPLOADS_DIR
+const LOCAL_UPLOADS_DIR = env.UPLOADS_DIR
+  ? path.resolve(env.UPLOADS_DIR)
+  : path.resolve(__dirname, '../../uploads');
 
 // Ensure base upload directory exists
 if (!fs.existsSync(LOCAL_UPLOADS_DIR)) {
@@ -152,7 +155,8 @@ export const storageService = {
     return {
       activeProvider: env.FILE_STORAGE_PROVIDER || 'local',
       isCloudConfigured,
-      localDir: LOCAL_UPLOADS_DIR
+      localDir: LOCAL_UPLOADS_DIR,
+      isPersistentDisk: Boolean(env.UPLOADS_DIR)
     };
   }
 };

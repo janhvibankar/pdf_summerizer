@@ -45,7 +45,7 @@ export const attachAuthCookie = (res, token) => {
   res.cookie(env.COOKIE_NAME, token, {
     httpOnly: true,
     secure: env.isProduction,
-    sameSite: env.isProduction ? 'strict' : 'lax',
+    sameSite: env.COOKIE_SAME_SITE,
     maxAge: env.COOKIE_MAX_AGE_MS,
     path: '/'
   });
@@ -58,7 +58,7 @@ export const clearAuthCookie = (res) => {
   res.clearCookie(env.COOKIE_NAME, {
     httpOnly: true,
     secure: env.isProduction,
-    sameSite: env.isProduction ? 'strict' : 'lax',
+    sameSite: env.COOKIE_SAME_SITE,
     path: '/'
   });
 };

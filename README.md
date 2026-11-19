@@ -208,9 +208,24 @@ Expected Response:
 
 ---
 
+## 🚢 Production Deployment
+
+PRANPAN is architected for decoupled, production deployment:
+- **Frontend**: Vercel (Edge CDN, SPA client routing)
+- **Backend**: Render (Node.js Web Service, reverse proxy support, health probes)
+- **Database**: MongoDB Atlas (Managed Document Store)
+- **AI Engine**: Google Gemini API (`@google/genai` v2 SDK)
+
+For complete step-by-step setup, environment variable requirements, and persistent storage configuration, consult the [Production Deployment Guide](DEPLOYMENT.md).
+
+---
+
 ## 🗺 Implementation Roadmap
 
 - [x] **Phase 0: Architectural Foundation** (Monorepo, Express ES modules, React + Vite, Tailwind tokens, API client, resilient DB layer)
 - [x] **Phase 1: Complete UI/UX Development** (Editorial design system, responsive layouts, document workspace shell, upload interactions, reader UI)
 - [x] **Phase 2: Authentication & Multi-Tenancy** (JWT, bcrypt, User model, session management, protected routes)
-- [ ] **Phase 3: Document Processing & Gemini Pipeline** (PDF extraction, Gemini AI summarization, chat with document, export/reports)
+- [x] **Phase 3: Document Processing & Gemini Pipeline** (PDF extraction, Gemini AI summarization, BM25 retrieval, document chat)
+- [x] **Phase 4 & 4.1: Integration QA & Acceptance Hardening** (Concurrency guards, rate limiting, live Gemini probes, 62 automated tests)
+- [x] **Phase 5A: Deployment Preparation** (Render blueprint, Vercel SPA rewrites, cross-site SameSite=None cookies, trust proxy, deployment documentation)
+- [ ] **Phase 5B: Live Cloud Provisioning & Execution** (Atlas live URI, Vercel & Render production deployment)

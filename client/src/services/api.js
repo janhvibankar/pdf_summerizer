@@ -17,6 +17,18 @@ export const apiClient = axios.create({
   }
 });
 
+// In-memory CSRF token cache to support cross-origin deployments (e.g. Vercel client + Render backend)
+// where document.cookie across different domains cannot be accessed via JavaScript.
+let inMemoryCsrfToken = null;
+
+export const setCsrfToken = (token) => {
+  inMemoryCsrfToken = token;
+};
+
+export const getCsrfToken = () => {
+  return inMemoryCsrfToken || getCookie('pranpan_csrf');
+};
+
 // Helper to extract cookie value by name in browser context
 const getCookie = (name) => {
   if (typeof document === 'undefined') return null;
@@ -29,7 +41,7 @@ apiClient.interceptors.request.use(
   (config) => {
     const method = config.method?.toLowerCase();
     if (['post', 'put', 'patch', 'delete'].includes(method)) {
-      const csrfToken = getCookie('pranpan_csrf');
+      const csrfToken = getCsrfToken();
       if (csrfToken && !config.headers['x-csrf-token']) {
         config.headers['x-csrf-token'] = csrfToken;
       }
@@ -42,6 +54,10 @@ apiClient.interceptors.request.use(
 // Response interceptor: unwrap response envelope and normalize errors
 apiClient.interceptors.response.use(
   (response) => {
+    // Automatically capture CSRF token if present in response body
+    if (response.data?.data?.csrfToken) {
+      setCsrfToken(response.data.data.csrfToken);
+    }
     // Return the response data body directly
     return response.data;
   },

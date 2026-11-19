@@ -23,6 +23,7 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 const MAX_PDF_SIZE_MB = parseInt(process.env.MAX_PDF_SIZE_MB, 10) || 15;
 const MAX_PDF_PAGES = parseInt(process.env.MAX_PDF_PAGES, 10) || 100;
 const FILE_STORAGE_PROVIDER = process.env.FILE_STORAGE_PROVIDER || 'local';
+const UPLOADS_DIR = process.env.UPLOADS_DIR || '';
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
 const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
@@ -33,6 +34,8 @@ const JWT_SECRET = process.env.JWT_SECRET || (NODE_ENV === 'production' ? '' : D
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const COOKIE_NAME = 'pranpan_session';
 const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// For cross-site deployments (e.g. Vercel frontend + Render backend), cookies require SameSite=None and Secure=true
+const COOKIE_SAME_SITE = process.env.COOKIE_SAME_SITE || (NODE_ENV === 'production' ? 'none' : 'lax');
 
 // Startup validation
 export const validateEnv = () => {
@@ -67,6 +70,7 @@ export const env = {
   MAX_PDF_SIZE_MB,
   MAX_PDF_PAGES,
   FILE_STORAGE_PROVIDER,
+  UPLOADS_DIR,
   CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET,
@@ -74,6 +78,7 @@ export const env = {
   JWT_EXPIRES_IN,
   COOKIE_NAME,
   COOKIE_MAX_AGE_MS,
+  COOKIE_SAME_SITE,
   isProduction: NODE_ENV === 'production',
   isDevelopment: NODE_ENV === 'development',
   isTest: NODE_ENV === 'test'

@@ -21,7 +21,7 @@ export const ensureCsrfCookie = (req, res, next) => {
     res.cookie(CSRF_COOKIE_NAME, token, {
       httpOnly: false, // Accessible to client-side JS to attach in X-CSRF-Token header
       secure: env.isProduction,
-      sameSite: 'lax',
+      sameSite: env.COOKIE_SAME_SITE,
       path: '/'
     });
     // Expose on req for immediate downstream handlers
@@ -39,9 +39,21 @@ export const isOriginAllowed = (origin) => {
   if (!origin) return true; // Non-browser / same-origin without Origin header
   try {
     const parsedOrigin = new URL(origin).origin;
-    const allowedClient = new URL(env.CLIENT_ORIGIN).origin;
 
-    if (parsedOrigin === allowedClient) {
+    // Check if origin matches any entry in configured CLIENT_ORIGIN array
+    const originsList = Array.isArray(env.CLIENT_ORIGIN)
+      ? env.CLIENT_ORIGIN
+      : [env.CLIENT_ORIGIN];
+
+    const isExplicitlyAllowed = originsList.some((allowed) => {
+      try {
+        return new URL(allowed).origin === parsedOrigin;
+      } catch {
+        return false;
+      }
+    });
+
+    if (isExplicitlyAllowed) {
       return true;
     }
 

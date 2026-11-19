@@ -4,6 +4,8 @@
   "private": true,
   "description": "PRANPAN - AI-Powered PDF Summarizer and Document Assistant",
   "scripts": {
+    "start": "npm start --prefix server",
+    "start:server": "npm start --prefix server",
     "dev": "concurrently -k -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan.bold,magenta.bold\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",

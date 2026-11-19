@@ -15,7 +15,7 @@ router.get('/csrf-token', (req, res) => {
   res.cookie(CSRF_COOKIE_NAME, token, {
     httpOnly: false,
     secure: env.isProduction,
-    sameSite: 'lax',
+    sameSite: env.COOKIE_SAME_SITE,
     path: '/'
   });
   return ApiResponse.success(res, {
